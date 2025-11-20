@@ -163,16 +163,65 @@ docker rm time-server
 - **Pydantic** - валидация данных
 - **Uvicorn** - ASGI сервер
 
+## CI/CD с GitHub Actions
+
+Проект включает автоматизированный деплой через GitHub Actions. При пуше в ветку `main` или `master` автоматически:
+1. Собирается Docker образ
+2. Образ публикуется в GitHub Container Registry (ghcr.io)
+3. Выполняется деплой на удаленный сервер через SSH
+
+### Настройка секретов в GitHub
+
+Для работы CI/CD необходимо настроить следующие секреты в настройках репозитория (`Settings` → `Secrets and variables` → `Actions`):
+
+- **`SSH_HOST`** - IP адрес или доменное имя удаленного сервера
+- **`SSH_USER`** - имя пользователя для SSH подключения
+- **`SSH_PRIVATE_KEY`** - приватный SSH ключ для подключения к серверу
+- **`SSH_PORT`** (опционально) - порт SSH (по умолчанию 22)
+
+### Настройка SSH ключа на сервере
+
+1. Сгенерируйте SSH ключ (если еще нет):
+```bash
+ssh-keygen -t ed25519 -C "github-actions"
+```
+
+2. Добавьте публичный ключ на сервер:
+```bash
+ssh-copy-id -i ~/.ssh/id_ed25519.pub user@your-server
+```
+
+3. Скопируйте приватный ключ и добавьте его в секрет `SSH_PRIVATE_KEY`:
+```bash
+cat ~/.ssh/id_ed25519
+```
+
+### Настройка Docker на сервере
+
+На удаленном сервере должен быть установлен Docker и настроен доступ к GitHub Container Registry:
+
+```bash
+# Логин в GitHub Container Registry
+echo $GITHUB_TOKEN | docker login ghcr.io -u USERNAME --password-stdin
+```
+
+### Ручной запуск workflow
+
+Workflow можно запустить вручную через вкладку `Actions` в репозитории GitHub.
+
 ## Структура проекта
 
 ```
 action-fastapi/
-├── main.py              # Основное приложение FastAPI
-├── requirements.txt     # Зависимости проекта
-├── Dockerfile           # Docker конфигурация для сборки образа
-├── .dockerignore        # Игнорируемые файлы для Docker
-├── .env.example         # Пример файла переменных окружения
-├── .gitignore          # Игнорируемые файлы для Git
-└── README.md           # Документация проекта
+├── main.py                      # Основное приложение FastAPI
+├── requirements.txt             # Зависимости проекта
+├── Dockerfile                   # Docker конфигурация для сборки образа
+├── .dockerignore                # Игнорируемые файлы для Docker
+├── .env.example                 # Пример файла переменных окружения
+├── .gitignore                   # Игнорируемые файлы для Git
+├── .github/
+│   └── workflows/
+│       └── deploy.yml           # GitHub Actions workflow для CI/CD
+└── README.md                    # Документация проекта
 ```
 
